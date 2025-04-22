@@ -1,67 +1,48 @@
 import streamlit as st
 import pandas as pd
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 
-navi = st.sidebar.radio("Navigation",["About","Predict"])
+# Sidebar Navigation
+navi = st.sidebar.radio("Navigation", ["About", "Predict"])
+
+# Load and preprocess data
 df = pd.read_csv('insurance.csv')
+df.replace({'sex': {'male': 0, 'female': 1},
+            'smoker': {'yes': 0, 'no': 1},
+            'region': {'southeast': 0, 'southwest': 1, 'northeast': 2, 'northwest': 3}}, inplace=True)
 
-if navi=="About":
+X = df.drop(columns='charges')
+y = df['charges']
+
+# Train the model
+model = RandomForestRegressor()
+model.fit(X, y)
+
+# About Section
+if navi == "About":
     st.title("Health Insurance Premium Predictor")
-    st.text(" ")
-    st.text(" ")
-    st.image('health_insurance.jpeg',width=550)
-    
+    st.write("Predict your health insurance premium based on demographic and lifestyle information.")
+    st.image('health_insurance.jpeg', width=550)
 
-df.replace({'sex':{'male':0,'female':1}},inplace=True)
+# Prediction Section
+if navi == "Predict":
+    st.title("Enter Your Details")
 
-df.replace({'smoker':{'yes':0,'no':1}},inplace=True)
+    age = st.number_input("Age", min_value=0, step=1)
+    gender = st.radio("Gender", ("Male", "Female"))
+    bmi = st.number_input("BMI", min_value=0.0, format="%.2f")
+    children = st.number_input("Number of Children", min_value=0, step=1)
+    smoke = st.radio("Do you Smoke?", ("Yes", "No"))
+    region = st.selectbox("Region", ("SouthEast", "SouthWest", "NorthEast", "NorthWest"))
 
-df.replace({'region':{'southeast':0,'southwest':1,'northeast':2,'northwest':3}},inplace=True)
-
-
-a = df.drop(columns='charges',axis=1)
-
-b = df['charges']
-
-rfr = RandomForestRegressor()
-
-rfr.fit(a,b)
-
-if navi=="Predict":
-    st.title("Enter Details")
-
-    age = st.number_input("Age: ",step=1,min_value=0)
-
-    gender = st.radio("Gender",("Male","Female"))
-
-    if (gender == "Male"):
-        s=0
-    if (gender == "Female"):
-        s=1
-    bmi = st.number_input("BMI: ",min_value=0)
-
-    children = st.number_input("Number of children: ",step=1,min_value=0)
-
-    smoke = st.radio("Do you smoke",("Yes","No"))
-
-    if (smoke=="Yes"):
-        sm = 0
-    if (smoke == "No"):
-        sm = 1
-
-    region = st.selectbox('Region',('SouthEast','SouthWest','NorthEast','NorthWest'))
-
-    if (region == "SouthEast"):
-        reg = 0
-    if (region == "SouthWest"):
-        reg = 1
-    if (region == "NorthEast"):
-        reg = 2
-    if (region == "NorthWest"):
-        reg = 3
+    # Convert inputs to model-usable format
+    gender_val = 0 if gender == "Male" else 1
+    smoke_val = 0 if smoke == "Yes" else 1
+    region_dict = {"SouthEast": 0, "SouthWest": 1, "NorthEast": 2, "NorthWest": 3}
+    region_val = region_dict[region]
 
     if st.button("Predict"):
-        st.subheader("Predicted Premium")
-        st.text(rfr.predict([[age,s,bmi,children,sm,reg]]))
-    
+        input_data = [[age, gender_val, bmi, children, smoke_val, region_val]]
+        prediction = model.predict(input_data)[0]
+        st.subheader("Predicted Insurance Premium:")
+        st.success(f"${prediction:,.2f}")
